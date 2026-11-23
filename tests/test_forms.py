@@ -96,6 +96,43 @@ def test_store_recovers_and_keeps_last_good():
     assert calls[0] == "http://mcp"
 
 
+def test_a_failed_fetch_waits_before_trying_again(monkeypatch):
+    # a hung or down doc-mcp would otherwise cost every request its timeout (and bdc-assist's offer its 3 s)
+    from types import SimpleNamespace
+
+    from side_panel import forms as forms_module
+
+    now, calls = [1000.0], []
+    monkeypatch.setattr(forms_module, "time", SimpleNamespace(monotonic=lambda: now[0]))
+
+    async def fetch(url):
+        calls.append(url)
+        if len(calls) == 1:
+            raise httpx.ConnectError("down")
+        return CHUNKS
+
+    store = FormStore("http://mcp", refresh=600, fetch=fetch)
+    with pytest.raises(NoForms):
+        asyncio.run(store.forms())
+    with pytest.raises(NoForms):
+        asyncio.run(store.forms())  # within the wait: not tried again
+    assert len(calls) == 1
+    now[0] += forms_module.RETRY_SECONDS
+    assert len(asyncio.run(store.forms())) == 5 and len(calls) == 2
+
+
+def test_an_empty_list_doesnt_replace_the_forms():
+    # doc-mcp answering [] (its DB reset, or mid-ingest) would empty the panel until the next refresh
+    results = [CHUNKS, []]
+
+    async def fetch(url):
+        return results.pop(0)
+
+    store = FormStore("http://mcp", refresh=0, fetch=fetch)
+    assert len(asyncio.run(store.forms())) == 5
+    assert len(asyncio.run(store.forms())) == 5
+
+
 def test_store_waits_out_its_refresh_interval():
     calls = []
 

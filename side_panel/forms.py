@@ -94,21 +94,31 @@ async def _fetch_chunks(url: str) -> list[dict]:
         return resp.json()
 
 
+RETRY_SECONDS = 30  # after a failed fetch, before the next try: a hung doc-mcp costs one request its timeout, not each
+
+
 class FormStore:
     """The forms, fetched from bdc-doc-mcp (url) when first needed and again once older than `refresh` seconds. A
-    failed fetch keeps the last list, so doc-mcp going down costs nothing until it's back; with no list yet, NoForms."""
+    failed fetch keeps the last list, so doc-mcp going down costs nothing until it's back, and is tried again
+    RETRY_SECONDS later at most; an empty list never replaces one; with no list yet, NoForms."""
 
     def __init__(self, url: str, refresh: float, fetch=None):
         self.url, self.refresh, self.fetch = url, refresh, fetch or _fetch_chunks
         self._forms: list[dict] | None = None
-        self._at = 0.0
+        self._next = 0.0  # when to fetch again
 
     async def forms(self) -> list[dict]:
-        if self._forms is None or time.monotonic() - self._at >= self.refresh:
+        if time.monotonic() >= self._next:
             try:
-                self._forms, self._at = to_forms(await self.fetch(self.url)), time.monotonic()
+                forms = to_forms(await self.fetch(self.url))
+                if forms or self._forms is None:
+                    self._forms = forms
+                else:  # doc-mcp's DB reset, or mid-ingest
+                    log.warning("forms from %s: none listed, the last %d kept", self.url, len(self._forms))
+                self._next = time.monotonic() + self.refresh
             except Exception as e:
                 log.warning("forms not refreshed from %s: %s: %s", self.url, type(e).__name__, e)
+                self._next = time.monotonic() + min(RETRY_SECONDS, self.refresh)
         if self._forms is None:
             raise NoForms
         return self._forms

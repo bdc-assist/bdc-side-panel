@@ -39,8 +39,9 @@ It needs bdc-doc-mcp (`DOC_MCP_URL`, default `http://127.0.0.1:8001`) with the `
 
 bdc-llm's pages carry each form as a ```` ```form ```` YAML block. bdc-doc-builder ingests each block as a `form`
 document, and bdc-doc-mcp's `GET /chunks?doc_type=form` lists them. This service fetches that list when first
-needed and again every `FORMS_REFRESH_SECONDS` (600). A failed fetch keeps the last list, and a block that doesn't
-parse is logged and skipped. So a form edited in bdc-llm reaches the panel after the next ingest, with no code change.
+needed and again every `FORMS_REFRESH_SECONDS` (600). A failed fetch keeps the last list and is tried again 30 s
+later at most (so a hung doc-mcp slows one request, not each); an empty list never replaces one; a block that
+doesn't parse is logged and skipped. So a form edited in bdc-llm reaches the panel after the next ingest, with no code change.
 
 Each block becomes a definition (`side_panel/forms.py`):
 

@@ -15,6 +15,7 @@ from datetime import date
 from pathlib import Path
 
 import yaml
+from langchain_core.exceptions import ModelRefusalError
 from pydantic import BaseModel
 
 PROMPTS = yaml.safe_load((Path(__file__).parent / "prompts.yaml").read_text(encoding="utf-8"))
@@ -49,7 +50,7 @@ def _valid(field: dict, value: str) -> str | None:
         return ""
     kind = field["kind"]
     if kind == "dropdown":  # the exact choice, whatever case or stray spaces the LLM wrote
-        return next((c for c in field["choices"] if c.casefold() == value.casefold()), None)
+        return next((c for c in field.get("choices") or () if c.casefold() == value.casefold()), None)
     if kind == "date":
         try:
             return value if _DATE.fullmatch(value) and date.fromisoformat(value) else None
@@ -106,9 +107,10 @@ async def _ask(llm, model, form: dict, human: str):
 
 
 def _filtered(e: Exception) -> bool:
-    # the provider's content filter refused the turn (Azure): a block, not an error. Azure's prompt filter says so
-    # in the error's code only, not its repr
-    return getattr(e, "code", None) == "content_filter" or "content_filter" in repr(e)
+    # the provider refused the turn: a block, not an error. Azure's prompt filter says so in the error's code only,
+    # not its repr; langchain raises ModelRefusalError when the model refuses or its reply is stopped by the filter
+    return (getattr(e, "code", None) == "content_filter" or "content_filter" in repr(e)
+            or isinstance(e, ModelRefusalError))
 
 
 def _lines(values: dict[str, str]) -> str:

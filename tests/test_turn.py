@@ -83,6 +83,12 @@ def test_date_number_checkbox_validated():
     assert check(costs, base, {box: "true"})[box] == "true"
 
 
+def test_a_dropdown_with_no_choices_takes_no_value():
+    # none of the forms has one today; it would raise KeyError and fail the turn
+    form = {"title": "T", "fields": [{"name": "kind", "label": "Kind", "kind": "dropdown", "required": False}]}
+    assert check(form, {}, {"kind": "Anything"}) == {}
+
+
 def test_switching_type_clears_the_old_section():
     old = {"ticket_type": "Publishing Research", "cf_journal_name": "Circulation"}
     assert check(GH, old, {"ticket_type": "Login Issue", "cf_journal_name": "Circulation"}) == {"ticket_type": "Login Issue"}
@@ -152,6 +158,16 @@ def test_a_filtered_guardrail_check_is_a_block():
     llm = FilteredChecks({"reply": "Done.", "values": pairs(cf_subject="Shorter")})
     out = asyncio.run(chat_turn(llm, GH, {"cf_subject": "Login"}, [], [{"role": "user", "text": "x"}], "", None))
     assert out["blocked"] is True and out["values"] == {"cf_subject": "Login"}
+
+
+def test_a_refused_or_filtered_reply_is_a_block():
+    # langchain's error when the model refuses the structured output, or its reply is stopped by a content filter
+    from langchain_openai.chat_models.base import OpenAIRefusalError
+
+    err = OpenAIRefusalError("Model output was stopped by a content filter")
+    out = asyncio.run(chat_turn(FakeLLM(raises=err), GH, {"cf_subject": "Login"}, [], [{"role": "user", "text": "x"}],
+                                "", None))
+    assert out == {"values": {"cf_subject": "Login"}, "reply": BLOCKED_REPLY, "blocked": True}
 
 
 def test_an_azure_content_filter_error_is_a_block():
