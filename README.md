@@ -68,6 +68,16 @@ when      = {field name: [choice, ...]}   # shown only while every named field h
   - The export already leaves most of these out on purpose, for example Get Help's consent box.
   - The list holds the one consent box the export does carry: the Costs form's terms agreement.
 
+## When the chat offers a form
+
+bdc-assist's `form_offer` step decides which answer gets a form's card, one at most; the web client shows it and
+sends back the forms it was offered. This service lists the forms and drafts the one the user opens.
+
+![When the chat offers a form](docs/form_offer.png)
+
+Pastel red: an LLM call, with the prompt it uses. A refused question never gets there, and a rejected answer drops
+the offer. Drawn by hand from [docs/form_offer.md](docs/form_offer.md)'s mermaid, which says how to redraw it.
+
 ## API
 
 | Route | Body | Returns |
