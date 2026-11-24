@@ -8,7 +8,9 @@ from dotenv import load_dotenv
 
 load_dotenv()  # real env vars win over .env
 
-PORT = 8012
+# the port `python -m side_panel.api` binds (bdc-assist's demo scripts read it too); not PORT or API_PORT, so a
+# .env copied from bdc-assist's doesn't move it
+PORT = int(os.getenv("SIDE_PANEL_PORT", "8012"))
 # bdc-doc-mcp, whose GET /chunks?doc_type=form serves bdc-llm's form blocks
 DOC_MCP_URL = os.getenv("DOC_MCP_URL", "http://127.0.0.1:8001").rstrip("/")
 FORMS_REFRESH_SECONDS = float(os.getenv("FORMS_REFRESH_SECONDS", "600"))

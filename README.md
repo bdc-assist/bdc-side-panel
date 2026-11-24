@@ -29,7 +29,7 @@ green boxes are other services.
 ```sh
 uv sync
 cp .env.example .env   # then fill in the LLM settings (bdc-assist's names and values work as they are)
-uv run uvicorn side_panel.api:app --port 8012
+uv run python -m side_panel.api   # on SIDE_PANEL_PORT, default 8012
 ```
 
 It needs bdc-doc-mcp (`DOC_MCP_URL`, default `http://127.0.0.1:8001`) with the `form` doc type ingested
@@ -132,5 +132,5 @@ See `.env.example`:
 - `DOC_MCP_URL`, `FORMS_REFRESH_SECONDS`
 - the LLM: bdc-assist's `COMPLETION_*`, `OPENAI_API_KEY`, `AZURE_*`
 - `CORS_ORIGINS`, `MAX_RUNNING_CHATS`, `MAX_WAITING_CHATS`, `LOG_LEVEL`
-
-The port is 8012 by convention (bdc-assist runs on 8010, bdc-doc-mcp on 8001).
+- `SIDE_PANEL_PORT`: the port, default 8012 (bdc-assist runs on 8010, bdc-doc-mcp on 8001). bdc-assist's
+  `demo_services` scripts start this service and read it from this `.env` to know where to find it.
