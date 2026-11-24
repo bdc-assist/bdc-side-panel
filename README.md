@@ -35,6 +35,19 @@ uv run uvicorn side_panel.api:app --port 8012
 It needs bdc-doc-mcp (`DOC_MCP_URL`, default `http://127.0.0.1:8001`) with the `form` doc type ingested
 (bdc-doc-builder's `fence: form` row over bdc-llm). Tests: `uv run pytest`.
 
+## Stub: no services
+
+To try the web client's side panel without bdc-doc-mcp or a model, run the stub: the real API on port 8013, with
+the forms from `tests/fixtures/forms.json` and a scripted LLM (its docstring says what it writes, and its `block`
+and `reject` keywords).
+
+```sh
+uv run python tests/_stub_server.py
+```
+
+In bdc-assist-client, `VITE_SIDE_PANEL_URL=http://127.0.0.1:8013 npm run dev`. With bdc-assist's own stub
+(`VITE_API_URL=http://127.0.0.1:8011`), its `get_help` keyword offers the Get Help form.
+
 ## Where the forms come from
 
 bdc-llm's pages carry each form as a ```` ```form ```` YAML block. bdc-doc-builder ingests each block as a `form`
